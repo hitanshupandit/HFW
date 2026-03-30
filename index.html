@@ -1,0 +1,978 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Youth in Juvenile Detention — HFW National Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0e0f11;
+    --surface: #161719;
+    --surface2: #1e2024;
+    --border: #2a2d34;
+    --text: #e8e9eb;
+    --muted: #7a7f8a;
+    --accent: #e8643a;
+    --accent2: #4fc4cf;
+    --accent3: #f5c842;
+    --nc: #6ee7b7;
+    --down: #e8643a;
+    --hfw: #1D9E75;
+    --similar: #378ADD;
+    --emerging: #EF9F27;
+    --limited: #888780;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Instrument Sans', sans-serif;
+    min-height: 100vh;
+    padding: 0 0 60px;
+  }
+
+  /* NAV TABS */
+  .tab-nav {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    padding: 0 40px;
+    overflow-x: auto;
+  }
+  .tab-btn {
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 14px 20px 12px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: color 0.2s, border-color 0.2s;
+    margin-bottom: -1px;
+  }
+  .tab-btn:hover { color: var(--text); }
+  .tab-btn.active { color: var(--accent2); border-bottom-color: var(--accent2); }
+
+  /* SECTIONS */
+  .tab-section { display: none; }
+  .tab-section.active { display: block; }
+
+  /* HEADER */
+  .header {
+    border-bottom: 1px solid var(--border);
+    padding: 28px 40px 24px;
+    display: flex;
+    align-items: flex-end;
+    gap: 40px;
+    flex-wrap: wrap;
+  }
+  .header-left h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 2rem;
+    line-height: 1.1;
+    color: var(--text);
+    letter-spacing: -0.01em;
+  }
+  .header-left h1 em { font-style: italic; color: var(--accent); }
+  .header-left p {
+    margin-top: 6px;
+    font-size: 0.78rem;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .header-controls {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-left: auto;
+  }
+  .control-group { display: flex; flex-direction: column; gap: 4px; }
+  .control-group label {
+    font-size: 0.68rem;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  select {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 7px 28px 7px 10px;
+    border-radius: 6px;
+    font-family: 'Instrument Sans', sans-serif;
+    font-size: 0.82rem;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%237a7f8a'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    cursor: pointer;
+    min-width: 160px;
+  }
+  select:focus { outline: 1px solid var(--accent); }
+
+  /* STAT CARDS */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
+    gap: 1px;
+    border-bottom: 1px solid var(--border);
+    background: var(--border);
+  }
+  .stat-card {
+    background: var(--surface);
+    padding: 22px 24px 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .stat-card::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--accent-color, var(--accent));
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.4s ease;
+  }
+  .stat-card:hover::after { transform: scaleX(1); }
+  .stat-label {
+    font-size: 0.68rem;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-family: 'DM Mono', monospace;
+    margin-bottom: 8px;
+  }
+  .stat-value { font-family: 'DM Serif Display', serif; font-size: 2.1rem; line-height: 1; color: var(--text); }
+  .stat-delta { margin-top: 6px; font-size: 0.72rem; font-family: 'DM Mono', monospace; color: var(--nc); }
+  .stat-delta.down { color: var(--down); }
+
+  /* MAIN GRID */
+  .main-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: var(--border);
+    margin-top: 1px;
+  }
+  .panel { background: var(--surface); padding: 24px; }
+  .panel-full { grid-column: 1 / -1; }
+  .panel-title { font-family: 'DM Serif Display', serif; font-size: 1.05rem; margin-bottom: 4px; color: var(--text); }
+  .panel-sub {
+    font-size: 0.71rem;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 18px;
+  }
+  .chart-wrap { position: relative; height: 260px; }
+  .chart-wrap canvas { width: 100% !important; }
+  .trend-wrap { position: relative; height: 220px; }
+
+  /* HFW NOTE */
+  .hfw-note {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--nc);
+    padding: 14px 16px;
+    border-radius: 0 6px 6px 0;
+    margin-bottom: 20px;
+    font-size: 0.8rem;
+    line-height: 1.6;
+    color: var(--muted);
+  }
+  .hfw-note strong { color: var(--nc); font-size: 0.9rem; }
+
+  /* NC MINI STATS */
+  .nc-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+  .nc-mini {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+    text-align: center;
+  }
+  .nc-mini .val { font-family: 'DM Serif Display', serif; font-size: 1.6rem; color: var(--nc); }
+  .nc-mini .lbl { font-size: 0.65rem; color: var(--muted); font-family: 'DM Mono', monospace; text-transform: uppercase; letter-spacing: 0.08em; margin-top: 4px; }
+
+  /* COUNTY TABLE */
+  .county-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+  .county-table th {
+    text-align: left; padding: 6px 10px;
+    font-size: 0.65rem; font-family: 'DM Mono', monospace;
+    color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em;
+    border-bottom: 1px solid var(--border);
+  }
+  .county-table td { padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,0.04); }
+  .county-table tr:hover td { background: var(--surface2); }
+  .county-bar { display: flex; align-items: center; gap: 8px; }
+  .county-bar-fill { height: 6px; border-radius: 3px; background: var(--nc); opacity: 0.7; }
+  .hfw-badge {
+    display: inline-block; font-size: 0.6rem; padding: 2px 6px; border-radius: 3px;
+    background: rgba(110,231,183,0.15); color: var(--nc); font-family: 'DM Mono', monospace; letter-spacing: 0.05em;
+  }
+
+  /* RANK LIST */
+  .rank-list { display: flex; flex-direction: column; gap: 6px; }
+  .rank-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 8px 10px; background: var(--surface2); border-radius: 6px; cursor: default;
+    transition: background 0.15s;
+  }
+  .rank-item:hover { background: var(--border); }
+  .rank-num { font-family: 'DM Mono', monospace; font-size: 0.72rem; color: var(--muted); width: 18px; text-align: right; }
+  .rank-name { flex: 1; font-size: 0.85rem; }
+  .rank-name.nc { color: var(--nc); }
+  .rank-count { font-family: 'DM Mono', monospace; font-size: 0.8rem; }
+  .rank-bar-wrap { width: 80px; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+  .rank-bar-fill { height: 100%; border-radius: 2px; background: var(--accent2); }
+
+  /* ── MAP SECTION ─────────────────────────────────────── */
+  .map-legend {
+    display: flex; flex-wrap: wrap; gap: 8px 20px;
+    padding: 18px 24px 0;
+  }
+  .map-legend-item { display: flex; align-items: center; gap: 7px; font-size: 0.75rem; color: var(--muted); font-family: 'DM Mono', monospace; }
+  .map-legend-dot { width: 11px; height: 11px; border-radius: 3px; flex-shrink: 0; }
+  .map-counters {
+    display: flex; gap: 1px; background: var(--border);
+    border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+    margin-top: 16px;
+  }
+  .map-counter { background: var(--surface); padding: 14px 20px; flex: 1; min-width: 110px; }
+  .map-counter .mc-val { font-family: 'DM Serif Display', serif; font-size: 1.8rem; line-height: 1; }
+  .map-counter .mc-lbl { font-size: 0.65rem; color: var(--muted); font-family: 'DM Mono', monospace; text-transform: uppercase; letter-spacing: 0.08em; margin-top: 4px; }
+  .map-svg-wrap { padding: 16px 24px; background: var(--surface); }
+  .state-rect { cursor: pointer; transition: opacity 0.12s; }
+  .state-rect:hover { opacity: 0.72; }
+  .state-rect.selected-state { stroke: #ffffff !important; stroke-width: 2px !important; }
+  .map-info-panel {
+    background: var(--surface2);
+    border-top: 1px solid var(--border);
+    padding: 18px 24px;
+    min-height: 110px;
+    font-size: 0.82rem;
+    line-height: 1.6;
+  }
+  .map-info-panel h3 { font-family: 'DM Serif Display', serif; font-size: 1rem; margin-bottom: 6px; }
+  .map-info-panel .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .tag {
+    font-size: 0.6rem; padding: 2px 8px; border-radius: 3px;
+    font-family: 'DM Mono', monospace; letter-spacing: 0.04em; text-transform: uppercase;
+  }
+  .tag-hfw { background: rgba(29,158,117,0.18); color: #6ee7b7; }
+  .tag-similar { background: rgba(55,138,221,0.18); color: #7cc8f8; }
+  .tag-emerging { background: rgba(239,159,39,0.18); color: #f5c842; }
+  .tag-limited { background: rgba(136,135,128,0.18); color: var(--muted); }
+  .map-placeholder { color: var(--muted); font-size: 0.82rem; padding: 16px 0; }
+
+  /* FOOTER */
+  .footer {
+    padding: 24px 40px 0;
+    font-size: 0.7rem;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    border-top: 1px solid var(--border);
+    margin-top: 1px;
+    line-height: 1.7;
+  }
+  .footer span { color: var(--accent2); }
+
+  @media (max-width: 720px) {
+    .main-grid { grid-template-columns: 1fr; }
+    .panel-full { grid-column: 1; }
+    .header { padding: 20px; }
+    .tab-nav { padding: 0 16px; }
+    .stats-row { grid-template-columns: repeat(2, 1fr); }
+    .nc-grid { grid-template-columns: repeat(2, 1fr); }
+    .map-counters { flex-wrap: wrap; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-left">
+    <h1>Youth in Juvenile <em>Detention</em> &amp; HFW Programs</h1>
+    <p>National · State · NC Focus · HFW Map · 1997–2021 · KIDS COUNT + NCDHHS Data</p>
+  </div>
+  <div class="header-controls">
+    <div class="control-group">
+      <label>Metric</label>
+      <select id="metricSelect" onchange="redraw()">
+        <option value="count">Total Count</option>
+        <option value="rate">Rate per 100,000</option>
+      </select>
+    </div>
+    <div class="control-group">
+      <label>Compare Year</label>
+      <select id="yearSelect" onchange="redraw()">
+        <option value="2021">2021 (Latest)</option>
+        <option value="2019">2019</option>
+        <option value="2017">2017</option>
+        <option value="2015">2015</option>
+        <option value="2013">2013</option>
+        <option value="2010">2010</option>
+        <option value="2007">2007</option>
+        <option value="2006">2006</option>
+        <option value="2003">2003</option>
+        <option value="2001">2001</option>
+        <option value="1999">1999</option>
+        <option value="1997">1997</option>
+      </select>
+    </div>
+  </div>
+</div>
+
+<!-- TAB NAV -->
+<nav class="tab-nav">
+  <button class="tab-btn active" onclick="showTab('overview', this)">Overview</button>
+  <button class="tab-btn" onclick="showTab('trends', this)">National Trends</button>
+  <button class="tab-btn" onclick="showTab('hfw-map', this)">HFW Map</button>
+  <button class="tab-btn" onclick="showTab('nc', this)">NC Spotlight</button>
+  <button class="tab-btn" onclick="showTab('counties', this)">NC Counties</button>
+</nav>
+
+<!-- STAT CARDS (always visible) -->
+<div class="stats-row" id="statsRow"></div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- TAB: OVERVIEW -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<section class="tab-section active" id="tab-overview">
+  <div class="main-grid">
+    <div class="panel panel-full">
+      <div class="panel-title">National Trend, 1997–2021</div>
+      <div class="panel-sub">United States vs North Carolina — Youth in Juvenile Detention / Correctional / Residential Facilities</div>
+      <div class="trend-wrap"><canvas id="trendChart"></canvas></div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">State Rankings</div>
+      <div class="panel-sub" id="rankLabel">Top 15 states</div>
+      <div class="rank-list" id="rankList"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">HFW Program Impact — NC</div>
+      <div class="panel-sub">Count & Rate · All years</div>
+      <div class="nc-grid" id="ncGrid"></div>
+      <div class="chart-wrap"><canvas id="ncChart"></canvas></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- TAB: NATIONAL TRENDS -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<section class="tab-section" id="tab-trends">
+  <div class="main-grid">
+    <div class="panel panel-full">
+      <div class="panel-title">National Trend — All Years</div>
+      <div class="panel-sub">United States total count and rate per 100,000 youth aged 10–17</div>
+      <div style="height:300px;position:relative"><canvas id="trendChartFull"></canvas></div>
+    </div>
+    <div class="panel panel-full">
+      <div class="panel-title">Year-over-Year Change by State</div>
+      <div class="panel-sub" id="yoyLabel">Select a year in the header to compare vs prior period</div>
+      <div style="height:320px;position:relative"><canvas id="yoyChart"></canvas></div>
+    </div>
+    <div class="panel panel-full">
+      <div class="panel-title">Top 10 States Over Time</div>
+      <div class="panel-sub">Count trajectory — largest detention populations</div>
+      <div style="height:300px;position:relative"><canvas id="multiLineChart"></canvas></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- TAB: HFW MAP -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<section class="tab-section" id="tab-hfw-map">
+  <div class="panel panel-full" style="padding-bottom:0">
+    <div class="panel-title">High Fidelity Wraparound Programs Across the US</div>
+    <div class="panel-sub">States offering HFW or similar intensive wraparound services for youth in juvenile justice — click any state</div>
+  </div>
+
+  <div class="map-legend">
+    <div class="map-legend-item"><div class="map-legend-dot" style="background:#1D9E75"></div>HFW — Established statewide program</div>
+    <div class="map-legend-item"><div class="map-legend-dot" style="background:#378ADD"></div>Similar / intensive wraparound</div>
+    <div class="map-legend-item"><div class="map-legend-dot" style="background:#EF9F27"></div>Emerging / pilot programs</div>
+    <div class="map-legend-item"><div class="map-legend-dot" style="background:#888780"></div>Limited / county-only</div>
+    <div class="map-legend-item"><div class="map-legend-dot" style="background:#2a2d34"></div>No documented statewide program</div>
+  </div>
+
+  <div class="map-counters" id="mapCounters"></div>
+
+  <div class="map-svg-wrap">
+    <svg id="usmap" width="100%" viewBox="0 0 960 580" style="display:block;"></svg>
+  </div>
+
+  <div class="map-info-panel" id="mapInfo">
+    <p class="map-placeholder">Click any state on the map to view its HFW / wraparound juvenile justice program details</p>
+  </div>
+
+  <!-- HFW State Detail Table -->
+  <div class="main-grid" style="margin-top:1px;">
+    <div class="panel panel-full">
+      <div class="panel-title">HFW State Program Directory</div>
+      <div class="panel-sub">All documented programs by tier — click a row to highlight on map</div>
+      <table class="county-table" id="hfwTable">
+        <thead>
+          <tr>
+            <th>State</th>
+            <th>Tier</th>
+            <th>Key Programs</th>
+            <th>JJ-Specific</th>
+          </tr>
+        </thead>
+        <tbody id="hfwTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- TAB: NC SPOTLIGHT -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<section class="tab-section" id="tab-nc">
+  <div class="main-grid">
+    <div class="panel panel-full">
+      <div class="hfw-note">
+        <strong>North Carolina HFW Program</strong><br>
+        NC's NCDHHS Tiered Care Coordination (TCC) program launched July 2017, with HFW as Tier 3 — intensive care coordination for youth exiting JJ facilities or at risk of out-of-home placement. 16+ active HFW teams as of March 2022, targeting 30 teams by end of FY 2023. NC's detention numbers fell <strong>~76%</strong> from peak (1999) to 2021 — among the steepest declines nationally. Teams are managed through LME-MCOs (Vaya Health, Trillium, etc.) with Family Navigators co-located at JJ and child welfare offices.
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">NC Detention Count — All Years</div>
+      <div class="panel-sub">With HFW program launch marker (2017)</div>
+      <div class="nc-grid" id="ncGridFull"></div>
+      <div style="height:260px;position:relative"><canvas id="ncChartFull"></canvas></div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">NC vs National Rate</div>
+      <div class="panel-sub">Rate per 100,000 youth comparison</div>
+      <div style="height:320px;position:relative"><canvas id="ncVsNatChart"></canvas></div>
+    </div>
+    <div class="panel panel-full">
+      <div class="panel-title">NC Tiered Care Coordination Model</div>
+      <div class="panel-sub">NCDHHS Three-Tier Structure</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border)">
+        <div style="background:var(--surface2);padding:20px">
+          <div style="font-size:0.65rem;color:var(--muted);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px">Tier 1 — Universal</div>
+          <div style="font-family:'DM Serif Display',serif;font-size:1rem;color:var(--accent2);margin-bottom:10px">LME-MCO Liaisons + Family Navigators</div>
+          <p style="font-size:0.8rem;color:var(--muted);line-height:1.6">Co-located at juvenile justice and child welfare offices. Provides access to assessors and connects youth in outpatient services. Low/no service level needs.</p>
+        </div>
+        <div style="background:var(--surface2);padding:20px;border-left:1px solid var(--border)">
+          <div style="font-size:0.65rem;color:var(--muted);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px">Tier 2 — Moderate</div>
+          <div style="font-family:'DM Serif Display',serif;font-size:1rem;color:var(--accent3);margin-bottom:10px">Family Navigator + LME-MCO Liaison</div>
+          <p style="font-size:0.8rem;color:var(--muted);line-height:1.6">Addresses youth with moderate service needs. Outpatient with low/moderate need, or enhanced services with case management. Also includes assessor access.</p>
+        </div>
+        <div style="background:var(--surface2);padding:20px;border-left:1px solid var(--border)">
+          <div style="font-size:0.65rem;color:var(--muted);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px">Tier 3 — Intensive</div>
+          <div style="font-family:'DM Serif Display',serif;font-size:1rem;color:var(--nc);margin-bottom:10px">High Fidelity Wraparound (HFW)</div>
+          <p style="font-size:0.8rem;color:var(--muted);line-height:1.6">For youth exiting JJ facilities, YDCs, detention, or at risk of out-of-home placement. Team includes Care Manager, Family Peer Advocate, Youth Peer Advocate. Up to 18 months.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- TAB: NC COUNTIES -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<section class="tab-section" id="tab-counties">
+  <div class="main-grid">
+    <div class="panel panel-full">
+      <div class="panel-title">NC Counties with HFW / Home-Visiting Programs</div>
+      <div class="panel-sub">Representative counties with documented Healthy Families or family support programming</div>
+      <table class="county-table" id="countyTable">
+        <thead>
+          <tr>
+            <th>County</th>
+            <th>Program Type</th>
+            <th>Since</th>
+            <th>Est. Families/yr</th>
+            <th>Note</th>
+          </tr>
+        </thead>
+        <tbody id="countyBody"></tbody>
+      </table>
+    </div>
+    <div class="panel panel-full">
+      <div class="panel-title">LME-MCO HFW Coverage Areas (NC)</div>
+      <div class="panel-sub">Managed Care Organizations delivering Tier 3 HFW across NC regions</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1px;background:var(--border)">
+        <div style="background:var(--surface2);padding:18px">
+          <div style="color:var(--nc);font-weight:600;margin-bottom:6px;font-size:0.9rem">Vaya Health</div>
+          <p style="font-size:0.78rem;color:var(--muted);line-height:1.6">Western NC — 24 counties including Buncombe, Henderson, Haywood, Watauga, Wilkes, Ashe. Serves youth 3–17 (SED) and 18–21 (SMI) transitioning from JJ/YDC facilities.</p>
+        </div>
+        <div style="background:var(--surface2);padding:18px;border-left:1px solid var(--border)">
+          <div style="color:var(--nc);font-weight:600;margin-bottom:6px;font-size:0.9rem">Trillium Health Resources</div>
+          <p style="font-size:0.78rem;color:var(--muted);line-height:1.6">Eastern NC — 27 counties including Wayne, Pitt, Craven, Johnston, Onslow, New Hanover. 2019 Network Analysis drove HFW expansion for JJ-involved youth. Max 18 months.</p>
+        </div>
+        <div style="background:var(--surface2);padding:18px;border-left:1px solid var(--border)">
+          <div style="color:var(--nc);font-weight:600;margin-bottom:6px;font-size:0.9rem">Alliance Health</div>
+          <p style="font-size:0.78rem;color:var(--muted);line-height:1.6">Central NC — Durham, Wake, Cumberland, Johnston, Orange counties. Co-located navigators at Durham JJ offices (TCC Year 1 pilot site). HFW credentialed teams serving metro populations.</p>
+        </div>
+        <div style="background:var(--surface2);padding:18px;border-left:1px solid var(--border)">
+          <div style="color:var(--nc);font-weight:600;margin-bottom:6px;font-size:0.9rem">Cardinal Innovations</div>
+          <p style="font-size:0.78rem;color:var(--muted);line-height:1.6">Piedmont NC — Mecklenburg, Cabarrus, Rowan, Stanly, Union, Anson. Charlotte metro flagship HFW teams. Integrated with Smart Start family support programs.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<div class="footer">
+  <p>Sources: <span>Annie E. Casey Foundation KIDS COUNT Data Center</span> · <span>NCDHHS Whole Child Health / TCC Program</span> · <span>Vaya Health / Trillium Health HFW Service Definitions</span> · <span>National Wraparound Initiative (NWI/PDX)</span> · <span>Center for Health Care Strategies (CHCS)</span> · <span>The Sentencing Project</span> · <span>OJJDP</span> · County HFW data is illustrative based on publicly available NC program records.</p>
+</div>
+
+<!-- ═══════════════ DATA & SCRIPTS ═══════════════ -->
+<script>
+// ─── DATA ──────────────────────────────────────────────────────────
+const stateData = [
+  {Location:"Alabama",TimeFrame:1997,count:1686,rate:328},{Location:"Alaska",TimeFrame:1997,count:351,rate:418},{Location:"Arizona",TimeFrame:1997,count:1869,rate:351},{Location:"Arkansas",TimeFrame:1997,count:603,rate:192},{Location:"California",TimeFrame:1997,count:19899,rate:524},{Location:"Colorado",TimeFrame:1997,count:1656,rate:356},{Location:"Connecticut",TimeFrame:1997,count:684,rate:260},{Location:"Delaware",TimeFrame:1997,count:312,rate:380},{Location:"Florida",TimeFrame:1997,count:5976,rate:386},{Location:"Georgia",TimeFrame:1997,count:3621,rate:463},{Location:"Hawaii",TimeFrame:1997,count:135,rate:100},{Location:"Idaho",TimeFrame:1997,count:243,rate:143},{Location:"Illinois",TimeFrame:1997,count:3426,rate:278},{Location:"Indiana",TimeFrame:1997,count:2484,rate:356},{Location:"Iowa",TimeFrame:1997,count:1065,rate:308},{Location:"Kansas",TimeFrame:1997,count:1242,rate:380},{Location:"Kentucky",TimeFrame:1997,count:1080,rate:235},{Location:"Louisiana",TimeFrame:1997,count:2775,rate:549},{Location:"Maine",TimeFrame:1997,count:318,rate:219},{Location:"Maryland",TimeFrame:1997,count:1497,rate:263},{Location:"Massachusetts",TimeFrame:1997,count:1197,rate:197},{Location:"Michigan",TimeFrame:1997,count:4158,rate:389},{Location:"Minnesota",TimeFrame:1997,count:1410,rate:267},{Location:"Mississippi",TimeFrame:1997,count:1044,rate:299},{Location:"Missouri",TimeFrame:1997,count:2052,rate:336},{Location:"Montana",TimeFrame:1997,count:219,rate:205},{Location:"Nebraska",TimeFrame:1997,count:774,rate:384},{Location:"Nevada",TimeFrame:1997,count:930,rate:453},{Location:"New Hampshire",TimeFrame:1997,count:276,rate:195},{Location:"New Jersey",TimeFrame:1997,count:2460,rate:299},{Location:"New Mexico",TimeFrame:1997,count:537,rate:235},{Location:"New York",TimeFrame:1997,count:4341,rate:235},{Location:"North Carolina",TimeFrame:1997,count:1203,rate:198},{Location:"North Dakota",TimeFrame:1997,count:135,rate:183},{Location:"Ohio",TimeFrame:1997,count:4869,rate:393},{Location:"Oklahoma",TimeFrame:1997,count:1218,rate:303},{Location:"Oregon",TimeFrame:1997,count:1200,rate:335},{Location:"Pennsylvania",TimeFrame:1997,count:4548,rate:346},{Location:"Rhode Island",TimeFrame:1997,count:243,rate:246},{Location:"South Carolina",TimeFrame:1997,count:1218,rate:264},{Location:"South Dakota",TimeFrame:1997,count:297,rate:324},{Location:"Tennessee",TimeFrame:1997,count:1965,rate:319},{Location:"Texas",TimeFrame:1997,count:9690,rate:416},{Location:"Utah",TimeFrame:1997,count:639,rate:221},{Location:"Vermont",TimeFrame:1997,count:129,rate:186},{Location:"Virginia",TimeFrame:1997,count:2361,rate:309},{Location:"Washington",TimeFrame:1997,count:2541,rate:402},{Location:"West Virginia",TimeFrame:1997,count:444,rate:228},{Location:"Wisconsin",TimeFrame:1997,count:2682,rate:436},{Location:"Wyoming",TimeFrame:1997,count:183,rate:295},
+  {Location:"Alabama",TimeFrame:1999,count:2007,rate:387},{Location:"Alaska",TimeFrame:1999,count:390,rate:464},{Location:"Arizona",TimeFrame:1999,count:2349,rate:430},{Location:"Arkansas",TimeFrame:1999,count:600,rate:189},{Location:"California",TimeFrame:1999,count:19449,rate:504},{Location:"Colorado",TimeFrame:1999,count:1860,rate:387},{Location:"Connecticut",TimeFrame:1999,count:657,rate:251},{Location:"Delaware",TimeFrame:1999,count:321,rate:387},{Location:"Florida",TimeFrame:1999,count:5985,rate:370},{Location:"Georgia",TimeFrame:1999,count:3774,rate:468},{Location:"Hawaii",TimeFrame:1999,count:138,rate:100},{Location:"Idaho",TimeFrame:1999,count:234,rate:136},{Location:"Illinois",TimeFrame:1999,count:3612,rate:292},{Location:"Indiana",TimeFrame:1999,count:2439,rate:347},{Location:"Iowa",TimeFrame:1999,count:1002,rate:289},{Location:"Kansas",TimeFrame:1999,count:1272,rate:388},{Location:"Kentucky",TimeFrame:1999,count:1221,rate:264},{Location:"Louisiana",TimeFrame:1999,count:2790,rate:554},{Location:"Maine",TimeFrame:1999,count:324,rate:223},{Location:"Maryland",TimeFrame:1999,count:1407,rate:246},{Location:"Massachusetts",TimeFrame:1999,count:1299,rate:213},{Location:"Michigan",TimeFrame:1999,count:4269,rate:399},{Location:"Minnesota",TimeFrame:1999,count:1500,rate:280},{Location:"Mississippi",TimeFrame:1999,count:1050,rate:301},{Location:"Missouri",TimeFrame:1999,count:2049,rate:334},{Location:"Montana",TimeFrame:1999,count:225,rate:211},{Location:"Nebraska",TimeFrame:1999,count:813,rate:399},{Location:"Nevada",TimeFrame:1999,count:1020,rate:477},{Location:"New Hampshire",TimeFrame:1999,count:270,rate:189},{Location:"New Jersey",TimeFrame:1999,count:2523,rate:305},{Location:"New Mexico",TimeFrame:1999,count:570,rate:244},{Location:"New York",TimeFrame:1999,count:4341,rate:235},{Location:"North Carolina",TimeFrame:1999,count:1428,rate:224},{Location:"North Dakota",TimeFrame:1999,count:129,rate:175},{Location:"Ohio",TimeFrame:1999,count:5160,rate:415},{Location:"Oklahoma",TimeFrame:1999,count:1293,rate:321},{Location:"Oregon",TimeFrame:1999,count:1296,rate:354},{Location:"Pennsylvania",TimeFrame:1999,count:4476,rate:339},{Location:"Rhode Island",TimeFrame:1999,count:246,rate:249},{Location:"South Carolina",TimeFrame:1999,count:1341,rate:290},{Location:"South Dakota",TimeFrame:1999,count:306,rate:330},{Location:"Tennessee",TimeFrame:1999,count:1950,rate:314},{Location:"Texas",TimeFrame:1999,count:9714,rate:410},{Location:"Utah",TimeFrame:1999,count:636,rate:217},{Location:"Vermont",TimeFrame:1999,count:135,rate:193},{Location:"Virginia",TimeFrame:1999,count:2502,rate:325},{Location:"Washington",TimeFrame:1999,count:2637,rate:411},{Location:"West Virginia",TimeFrame:1999,count:432,rate:223},{Location:"Wisconsin",TimeFrame:1999,count:2682,rate:434},{Location:"Wyoming",TimeFrame:1999,count:183,rate:293},
+  {Location:"Alabama",TimeFrame:2003,count:1722,rate:327},{Location:"Alaska",TimeFrame:2003,count:321,rate:380},{Location:"Arizona",TimeFrame:2003,count:2256,rate:394},{Location:"Arkansas",TimeFrame:2003,count:546,rate:169},{Location:"California",TimeFrame:2003,count:15279,rate:384},{Location:"Colorado",TimeFrame:2003,count:1698,rate:340},{Location:"Connecticut",TimeFrame:2003,count:615,rate:233},{Location:"Delaware",TimeFrame:2003,count:285,rate:339},{Location:"Florida",TimeFrame:2003,count:5334,rate:317},{Location:"Georgia",TimeFrame:2003,count:3195,rate:377},{Location:"Hawaii",TimeFrame:2003,count:117,rate:85},{Location:"Idaho",TimeFrame:2003,count:207,rate:115},{Location:"Illinois",TimeFrame:2003,count:3108,rate:250},{Location:"Indiana",TimeFrame:2003,count:2364,rate:330},{Location:"Iowa",TimeFrame:2003,count:870,rate:251},{Location:"Kansas",TimeFrame:2003,count:1131,rate:343},{Location:"Kentucky",TimeFrame:2003,count:1164,rate:248},{Location:"Louisiana",TimeFrame:2003,count:2622,rate:517},{Location:"Maine",TimeFrame:2003,count:285,rate:197},{Location:"Maryland",TimeFrame:2003,count:1359,rate:237},{Location:"Massachusetts",TimeFrame:2003,count:1341,rate:220},{Location:"Michigan",TimeFrame:2003,count:3444,rate:321},{Location:"Minnesota",TimeFrame:2003,count:1446,rate:266},{Location:"Mississippi",TimeFrame:2003,count:819,rate:234},{Location:"Missouri",TimeFrame:2003,count:1959,rate:316},{Location:"Montana",TimeFrame:2003,count:219,rate:207},{Location:"Nebraska",TimeFrame:2003,count:792,rate:384},{Location:"Nevada",TimeFrame:2003,count:963,rate:415},{Location:"New Hampshire",TimeFrame:2003,count:252,rate:176},{Location:"New Jersey",TimeFrame:2003,count:2229,rate:268},{Location:"New Mexico",TimeFrame:2003,count:522,rate:218},{Location:"New York",TimeFrame:2003,count:3711,rate:201},{Location:"North Carolina",TimeFrame:2003,count:1203,rate:169},{Location:"North Dakota",TimeFrame:2003,count:123,rate:168},{Location:"Ohio",TimeFrame:2003,count:4698,rate:377},{Location:"Oklahoma",TimeFrame:2003,count:1188,rate:292},{Location:"Oregon",TimeFrame:2003,count:1182,rate:312},{Location:"Pennsylvania",TimeFrame:2003,count:4083,rate:308},{Location:"Rhode Island",TimeFrame:2003,count:237,rate:241},{Location:"South Carolina",TimeFrame:2003,count:1197,rate:258},{Location:"South Dakota",TimeFrame:2003,count:294,rate:312},{Location:"Tennessee",TimeFrame:2003,count:1728,rate:273},{Location:"Texas",TimeFrame:2003,count:9237,rate:372},{Location:"Utah",TimeFrame:2003,count:633,rate:207},{Location:"Vermont",TimeFrame:2003,count:120,rate:172},{Location:"Virginia",TimeFrame:2003,count:2337,rate:297},{Location:"Washington",TimeFrame:2003,count:2319,rate:348},{Location:"West Virginia",TimeFrame:2003,count:381,rate:199},{Location:"Wisconsin",TimeFrame:2003,count:2439,rate:394},{Location:"Wyoming",TimeFrame:2003,count:156,rate:249},
+  {Location:"Alabama",TimeFrame:2007,count:1359,rate:255},{Location:"Alaska",TimeFrame:2007,count:261,rate:307},{Location:"Arizona",TimeFrame:2007,count:1920,rate:319},{Location:"Arkansas",TimeFrame:2007,count:468,rate:144},{Location:"California",TimeFrame:2007,count:12501,rate:306},{Location:"Colorado",TimeFrame:2007,count:1374,rate:268},{Location:"Connecticut",TimeFrame:2007,count:516,rate:197},{Location:"Delaware",TimeFrame:2007,count:261,rate:305},{Location:"Florida",TimeFrame:2007,count:4365,rate:248},{Location:"Georgia",TimeFrame:2007,count:2694,rate:305},{Location:"Hawaii",TimeFrame:2007,count:90,rate:64},{Location:"Idaho",TimeFrame:2007,count:168,rate:89},{Location:"Illinois",TimeFrame:2007,count:2655,rate:213},{Location:"Indiana",TimeFrame:2007,count:1971,rate:271},{Location:"Iowa",TimeFrame:2007,count:687,rate:200},{Location:"Kansas",TimeFrame:2007,count:924,rate:279},{Location:"Kentucky",TimeFrame:2007,count:999,rate:212},{Location:"Louisiana",TimeFrame:2007,count:1899,rate:374},{Location:"Maine",TimeFrame:2007,count:246,rate:173},{Location:"Maryland",TimeFrame:2007,count:1095,rate:189},{Location:"Massachusetts",TimeFrame:2007,count:1149,rate:188},{Location:"Michigan",TimeFrame:2007,count:2457,rate:229},{Location:"Minnesota",TimeFrame:2007,count:1122,rate:204},{Location:"Mississippi",TimeFrame:2007,count:666,rate:191},{Location:"Missouri",TimeFrame:2007,count:1560,rate:249},{Location:"Montana",TimeFrame:2007,count:183,rate:173},{Location:"Nebraska",TimeFrame:2007,count:645,rate:307},{Location:"Nevada",TimeFrame:2007,count:843,rate:332},{Location:"New Hampshire",TimeFrame:2007,count:219,rate:153},{Location:"New Jersey",TimeFrame:2007,count:1908,rate:227},{Location:"New Mexico",TimeFrame:2007,count:489,rate:201},{Location:"New York",TimeFrame:2007,count:2697,rate:146},{Location:"North Carolina",TimeFrame:2007,count:1035,rate:140},{Location:"North Dakota",TimeFrame:2007,count:108,rate:149},{Location:"Ohio",TimeFrame:2007,count:3657,rate:294},{Location:"Oklahoma",TimeFrame:2007,count:1011,rate:245},{Location:"Oregon",TimeFrame:2007,count:951,rate:245},{Location:"Pennsylvania",TimeFrame:2007,count:3492,rate:264},{Location:"Rhode Island",TimeFrame:2007,count:183,rate:187},{Location:"South Carolina",TimeFrame:2007,count:951,rate:204},{Location:"South Dakota",TimeFrame:2007,count:258,rate:272},{Location:"Tennessee",TimeFrame:2007,count:1431,rate:223},{Location:"Texas",TimeFrame:2007,count:7341,rate:282},{Location:"Utah",TimeFrame:2007,count:531,rate:162},{Location:"Vermont",TimeFrame:2007,count:102,rate:148},{Location:"Virginia",TimeFrame:2007,count:1974,rate:245},{Location:"Washington",TimeFrame:2007,count:1848,rate:267},{Location:"West Virginia",TimeFrame:2007,count:297,rate:157},{Location:"Wisconsin",TimeFrame:2007,count:1929,rate:310},{Location:"Wyoming",TimeFrame:2007,count:138,rate:219},
+  {Location:"Alabama",TimeFrame:2013,count:786,rate:147},{Location:"Alaska",TimeFrame:2013,count:186,rate:215},{Location:"Arizona",TimeFrame:2013,count:1026,rate:165},{Location:"Arkansas",TimeFrame:2013,count:279,rate:85},{Location:"California",TimeFrame:2013,count:6417,rate:156},{Location:"Colorado",TimeFrame:2013,count:837,rate:158},{Location:"Connecticut",TimeFrame:2013,count:303,rate:117},{Location:"Delaware",TimeFrame:2013,count:162,rate:186},{Location:"Florida",TimeFrame:2013,count:2244,rate:124},{Location:"Georgia",TimeFrame:2013,count:1485,rate:166},{Location:"Hawaii",TimeFrame:2013,count:54,rate:38},{Location:"Idaho",TimeFrame:2013,count:108,rate:55},{Location:"Illinois",TimeFrame:2013,count:1431,rate:115},{Location:"Indiana",TimeFrame:2013,count:1086,rate:148},{Location:"Iowa",TimeFrame:2013,count:372,rate:109},{Location:"Kansas",TimeFrame:2013,count:507,rate:153},{Location:"Kentucky",TimeFrame:2013,count:552,rate:118},{Location:"Louisiana",TimeFrame:2013,count:981,rate:194},{Location:"Maine",TimeFrame:2013,count:150,rate:107},{Location:"Maryland",TimeFrame:2013,count:651,rate:112},{Location:"Massachusetts",TimeFrame:2013,count:657,rate:108},{Location:"Michigan",TimeFrame:2013,count:1215,rate:115},{Location:"Minnesota",TimeFrame:2013,count:618,rate:112},{Location:"Mississippi",TimeFrame:2013,count:372,rate:107},{Location:"Missouri",TimeFrame:2013,count:882,rate:141},{Location:"Montana",TimeFrame:2013,count:117,rate:112},{Location:"Nebraska",TimeFrame:2013,count:357,rate:167},{Location:"Nevada",TimeFrame:2013,count:459,rate:172},{Location:"New Hampshire",TimeFrame:2013,count:141,rate:100},{Location:"New Jersey",TimeFrame:2013,count:1026,rate:122},{Location:"New Mexico",TimeFrame:2013,count:276,rate:112},{Location:"New York",TimeFrame:2013,count:1386,rate:75},{Location:"North Carolina",TimeFrame:2013,count:543,rate:70},{Location:"North Dakota",TimeFrame:2013,count:63,rate:90},{Location:"Ohio",TimeFrame:2013,count:1911,rate:154},{Location:"Oklahoma",TimeFrame:2013,count:570,rate:137},{Location:"Oregon",TimeFrame:2013,count:504,rate:128},{Location:"Pennsylvania",TimeFrame:2013,count:1998,rate:151},{Location:"Rhode Island",TimeFrame:2013,count:108,rate:111},{Location:"South Carolina",TimeFrame:2013,count:489,rate:104},{Location:"South Dakota",TimeFrame:2013,count:147,rate:154},{Location:"Tennessee",TimeFrame:2013,count:795,rate:123},{Location:"Texas",TimeFrame:2013,count:4161,rate:151},{Location:"Utah",TimeFrame:2013,count:291,rate:83},{Location:"Vermont",TimeFrame:2013,count:57,rate:83},{Location:"Virginia",TimeFrame:2013,count:1098,rate:133},{Location:"Washington",TimeFrame:2013,count:984,rate:138},{Location:"West Virginia",TimeFrame:2013,count:168,rate:90},{Location:"Wisconsin",TimeFrame:2013,count:1020,rate:163},{Location:"Wyoming",TimeFrame:2013,count:78,rate:124},
+  {Location:"Alabama",TimeFrame:2017,count:558,rate:104},{Location:"Alaska",TimeFrame:2017,count:153,rate:177},{Location:"Arizona",TimeFrame:2017,count:729,rate:115},{Location:"Arkansas",TimeFrame:2017,count:207,rate:63},{Location:"California",TimeFrame:2017,count:4458,rate:108},{Location:"Colorado",TimeFrame:2017,count:621,rate:114},{Location:"Connecticut",TimeFrame:2017,count:204,rate:78},{Location:"Delaware",TimeFrame:2017,count:120,rate:137},{Location:"Florida",TimeFrame:2017,count:1572,rate:86},{Location:"Georgia",TimeFrame:2017,count:1059,rate:117},{Location:"Hawaii",TimeFrame:2017,count:39,rate:27},{Location:"Idaho",TimeFrame:2017,count:81,rate:40},{Location:"Illinois",TimeFrame:2017,count:972,rate:78},{Location:"Indiana",TimeFrame:2017,count:756,rate:102},{Location:"Iowa",TimeFrame:2017,count:261,rate:77},{Location:"Kansas",TimeFrame:2017,count:354,rate:106},{Location:"Kentucky",TimeFrame:2017,count:390,rate:83},{Location:"Louisiana",TimeFrame:2017,count:678,rate:134},{Location:"Maine",TimeFrame:2017,count:105,rate:75},{Location:"Maryland",TimeFrame:2017,count:453,rate:78},{Location:"Massachusetts",TimeFrame:2017,count:456,rate:74},{Location:"Michigan",TimeFrame:2017,count:804,rate:76},{Location:"Minnesota",TimeFrame:2017,count:429,rate:77},{Location:"Mississippi",TimeFrame:2017,count:258,rate:74},{Location:"Missouri",TimeFrame:2017,count:600,rate:96},{Location:"Montana",TimeFrame:2017,count:81,rate:78},{Location:"Nebraska",TimeFrame:2017,count:255,rate:119},{Location:"Nevada",TimeFrame:2017,count:318,rate:116},{Location:"New Hampshire",TimeFrame:2017,count:99,rate:70},{Location:"New Jersey",TimeFrame:2017,count:681,rate:81},{Location:"New Mexico",TimeFrame:2017,count:195,rate:79},{Location:"New York",TimeFrame:2017,count:837,rate:45},{Location:"North Carolina",TimeFrame:2017,count:366,rate:46},{Location:"North Dakota",TimeFrame:2017,count:45,rate:66},{Location:"Ohio",TimeFrame:2017,count:1284,rate:103},{Location:"Oklahoma",TimeFrame:2017,count:390,rate:93},{Location:"Oregon",TimeFrame:2017,count:345,rate:87},{Location:"Pennsylvania",TimeFrame:2017,count:1374,rate:104},{Location:"Rhode Island",TimeFrame:2017,count:72,rate:74},{Location:"South Carolina",TimeFrame:2017,count:327,rate:70},{Location:"South Dakota",TimeFrame:2017,count:105,rate:109},{Location:"Tennessee",TimeFrame:2017,count:537,rate:83},{Location:"Texas",TimeFrame:2017,count:2844,rate:101},{Location:"Utah",TimeFrame:2017,count:198,rate:55},{Location:"Vermont",TimeFrame:2017,count:39,rate:57},{Location:"Virginia",TimeFrame:2017,count:750,rate:89},{Location:"Washington",TimeFrame:2017,count:651,rate:89},{Location:"West Virginia",TimeFrame:2017,count:111,rate:60},{Location:"Wisconsin",TimeFrame:2017,count:693,rate:111},{Location:"Wyoming",TimeFrame:2017,count:54,rate:85},
+  {Location:"Alabama",TimeFrame:2021,count:342,rate:64},{Location:"Alaska",TimeFrame:2021,count:90,rate:105},{Location:"Arizona",TimeFrame:2021,count:432,rate:67},{Location:"Arkansas",TimeFrame:2021,count:123,rate:38},{Location:"California",TimeFrame:2021,count:2649,rate:64},{Location:"Colorado",TimeFrame:2021,count:363,rate:66},{Location:"Connecticut",TimeFrame:2021,count:105,rate:41},{Location:"Delaware",TimeFrame:2021,count:72,rate:82},{Location:"Florida",TimeFrame:2021,count:933,rate:51},{Location:"Georgia",TimeFrame:2021,count:624,rate:69},{Location:"Hawaii",TimeFrame:2021,count:21,rate:15},{Location:"Idaho",TimeFrame:2021,count:45,rate:22},{Location:"Illinois",TimeFrame:2021,count:570,rate:46},{Location:"Indiana",TimeFrame:2021,count:441,rate:60},{Location:"Iowa",TimeFrame:2021,count:150,rate:44},{Location:"Kansas",TimeFrame:2021,count:204,rate:61},{Location:"Kentucky",TimeFrame:2021,count:228,rate:49},{Location:"Louisiana",TimeFrame:2021,count:390,rate:78},{Location:"Maine",TimeFrame:2021,count:60,rate:44},{Location:"Maryland",TimeFrame:2021,count:258,rate:45},{Location:"Massachusetts",TimeFrame:2021,count:249,rate:41},{Location:"Michigan",TimeFrame:2021,count:456,rate:43},{Location:"Minnesota",TimeFrame:2021,count:246,rate:44},{Location:"Mississippi",TimeFrame:2021,count:147,rate:43},{Location:"Missouri",TimeFrame:2021,count:345,rate:55},{Location:"Montana",TimeFrame:2021,count:48,rate:47},{Location:"Nebraska",TimeFrame:2021,count:147,rate:68},{Location:"Nevada",TimeFrame:2021,count:183,rate:65},{Location:"New Hampshire",TimeFrame:2021,count:54,rate:39},{Location:"New Jersey",TimeFrame:2021,count:381,rate:45},{Location:"New Mexico",TimeFrame:2021,count:111,rate:45},{Location:"New York",TimeFrame:2021,count:429,rate:23},{Location:"North Carolina",TimeFrame:2021,count:411,rate:38},{Location:"North Dakota",TimeFrame:2021,count:27,rate:40},{Location:"Ohio",TimeFrame:2021,count:729,rate:59},{Location:"Oklahoma",TimeFrame:2021,count:222,rate:53},{Location:"Oregon",TimeFrame:2021,count:192,rate:49},{Location:"Pennsylvania",TimeFrame:2021,count:780,rate:59},{Location:"Rhode Island",TimeFrame:2021,count:39,rate:41},{Location:"South Carolina",TimeFrame:2021,count:183,rate:39},{Location:"South Dakota",TimeFrame:2021,count:60,rate:62},{Location:"Tennessee",TimeFrame:2021,count:306,rate:47},{Location:"Texas",TimeFrame:2021,count:1629,rate:58},{Location:"Utah",TimeFrame:2021,count:114,rate:31},{Location:"Vermont",TimeFrame:2021,count:21,rate:31},{Location:"Virginia",TimeFrame:2021,count:420,rate:50},{Location:"Washington",TimeFrame:2021,count:363,rate:49},{Location:"West Virginia",TimeFrame:2021,count:63,rate:34},{Location:"Wisconsin",TimeFrame:2021,count:396,rate:63},{Location:"Wyoming",TimeFrame:2021,count:30,rate:48}
+];
+
+const nationData = [
+  {TimeFrame:1997,count:105055,rate:356},{TimeFrame:1999,count:107493,rate:355},{TimeFrame:2001,count:104219,rate:334},
+  {TimeFrame:2003,count:96531,rate:303},{TimeFrame:2006,count:92721,rate:289},{TimeFrame:2007,count:86814,rate:272},
+  {TimeFrame:2010,count:70793,rate:225},{TimeFrame:2011,count:61423,rate:196},{TimeFrame:2013,count:54148,rate:173},
+  {TimeFrame:2015,count:48043,rate:152},{TimeFrame:2017,count:43580,rate:138},{TimeFrame:2019,count:36479,rate:114},
+  {TimeFrame:2021,count:24894,rate:74}
+];
+
+const years = [1997,1999,2001,2003,2006,2007,2010,2011,2013,2015,2017,2019,2021];
+
+const ncCounties = [
+  {county:"Mecklenburg",program:"Healthy Families America",since:1998,families:420,note:"Charlotte area flagship"},
+  {county:"Wake",program:"HFA / Family Resource Centers",since:2001,families:380,note:"Raleigh metro, multi-site"},
+  {county:"Durham",program:"NFP + HFA blended",since:2000,families:290,note:"TCC Year 1 pilot district"},
+  {county:"Guilford",program:"Healthy Families America",since:2003,families:210,note:"Greensboro & High Point"},
+  {county:"Forsyth",program:"HFA + Smart Start",since:2002,families:195,note:"Smart Start integrated"},
+  {county:"Cumberland",program:"Healthy Families America",since:2004,families:175,note:"Fayetteville region"},
+  {county:"Buncombe",program:"Family Support Program",since:2005,families:130,note:"Asheville area, Vaya Health"},
+  {county:"Cabarrus",program:"HFA / Prevent Child Abuse",since:2006,families:110,note:"Concord area"},
+  {county:"New Hanover",program:"Healthy Families America",since:2007,families:95,note:"Wilmington coastal, Trillium"},
+  {county:"Robeson",program:"HFA Rural Expansion",since:2009,families:140,note:"High-need rural county"}
+];
+
+// ── HFW MAP DATA ─────────────────────────────────────────────────────
+const HFW_TIERS = {
+  HFW:      {color:'#1D9E75', label:'HFW established'},
+  SIMILAR:  {color:'#378ADD', label:'Similar program'},
+  EMERGING: {color:'#EF9F27', label:'Emerging / pilot'},
+  NONE:     {color:'#2a2d34', label:'No statewide program'}
+};
+
+const HFW_STATES = {
+  NC:{name:'North Carolina',tier:'HFW',flagship:true,summary:'Statewide HFW via NCDHHS TCC (2017). 16+ active teams targeting 30 by 2023. LME-MCOs lead with Family Navigators co-located at JJ offices. Ages 6–21.',programs:['NCDHHS TCC HFW','Vaya Health','Trillium Health','Alliance Health'],jj:true},
+  WI:{name:'Wisconsin',tier:'HFW',summary:'Wraparound Milwaukee (est. 1995) — founding HFW model. 1,000+ youth enrolled; 400+ adjudicated delinquent. Blended multi-system funding.',programs:['Wraparound Milwaukee','Statewide Youth Aids'],jj:true},
+  MD:{name:'Maryland',tier:'HFW',summary:'Statewide HFW via NWIC at U of Maryland. Lead state in SAMHSA/CMS CME demonstration. Sweeping JJ reform law 2022.',programs:['NWIC-certified HFW','CME Model'],jj:true},
+  GA:{name:'Georgia',tier:'HFW',summary:'HFW pilot with GA Dept. of Juvenile Justice and Lookout Mountain / Viewpoint Health CMEs. Evaluated by GA Health Policy Center.',programs:['GA DJJ HFW pilot','Lookout Mountain CME','Viewpoint Health CME'],jj:true},
+  NY:{name:'New York',tier:'HFW',summary:'NY HFW is a formal Health Home service (Medicaid) for SED youth. Targets those transitioning from JJ placements. Multiple certified CMAs.',programs:['NY Health Home HFW (OMH)','Astor Services HV','Multiple CMAs'],jj:true},
+  ME:{name:'Maine',tier:'HFW',summary:'The Opportunity Alliance HFW for youth 12–20 with JJ involvement. OJJDP Title II regional care teams statewide. No insurance required.',programs:['Opportunity Alliance HFW','OJJDP regional teams'],jj:true},
+  MN:{name:'Minnesota',tier:'HFW',summary:'HFW via MiiWrap model through VOA MN/WI and FamilyWise. Covered by Medical Assistance. Multi-system youth including JJ.',programs:['MiiWrap (Medicaid)','VOA MN/WI','FamilyWise'],jj:true},
+  IN:{name:'Indiana',tier:'HFW',summary:'HFW for youth 6–18 in mental health, child welfare and JJ. State CANS 4–6 eligibility. Select counties.',programs:['SBH High Fidelity Wraparound','State CANS eligibility'],jj:true},
+  WY:{name:'Wyoming',tier:'HFW',summary:'Part of SAMHSA/CMS CME demonstration (MD lead). HFW training provided statewide.',programs:['CME Demonstration','HFW statewide training'],jj:true},
+  WV:{name:'West Virginia',tier:'HFW',summary:'HFW training statewide via Marshall University. Justice Center for Evidence-Based Practice.',programs:['HFW training (Marshall U)','Justice Center EBP'],jj:true},
+  OH:{name:'Ohio',tier:'SIMILAR',summary:'RECLAIM Ohio ($32M/yr) funds community alternatives. Targeted RECLAIM for felony-eligible youth. Clermont County intensive wraparound.',programs:['RECLAIM Ohio','Targeted RECLAIM','Clermont Co. Wraparound'],jj:true},
+  PA:{name:'Pennsylvania',tier:'SIMILAR',summary:'EPISCenter oversees wraparound fidelity. MacArthur Models for Change core state. Multiple county CMAs.',programs:['EPISCenter','MacArthur MfC','County CMAs'],jj:true},
+  IL:{name:'Illinois',tier:'SIMILAR',summary:'Redeploy Illinois fiscal incentives for JJ diversion. County wraparound programs. MacArthur core state.',programs:['Redeploy Illinois','County wraparound','MacArthur MfC'],jj:true},
+  CA:{name:'California',tier:'SIMILAR',summary:'DCF mobile response + wraparound for 50K+ families/yr. Medicaid Reentry 1115 Demo (2023).',programs:['DCF wraparound network','Medicaid 1115 Demo'],jj:true},
+  WA:{name:'Washington',tier:'SIMILAR',summary:'$10M+ EBP JJ fund (2023). Medicaid Reentry 1115 Demo. NWIC at UW. 2016 Medicaid/JJ Executive Order.',programs:['$10M EBP fund','Medicaid 1115 Demo','NWIC at UW'],jj:true},
+  LA:{name:'Louisiana',tier:'SIMILAR',summary:'Medicaid state plan amended to cover EBPs for JJ youth. JJ Reinvestment Program ties funding to performance.',programs:['Medicaid EBP coverage','JJ Reinvestment Program'],jj:true},
+  OR:{name:'Oregon',tier:'SIMILAR',summary:'Medicaid Reentry 1115 Demo. Oregon Family Wraparound in multiple counties.',programs:['Medicaid 1115 Demo','OR Family Wraparound'],jj:true},
+  CO:{name:'Colorado',tier:'SIMILAR',summary:'DCJ EBP Implementation Center. MacArthur Models for Change active.',programs:['DCJ EBP Center','MacArthur MfC'],jj:false},
+  MA:{name:'Massachusetts',tier:'SIMILAR',summary:'Medicaid Reentry 1115 Demo (2023). Intensive community care coordination. MacArthur active.',programs:['Medicaid 1115 Demo','MacArthur MfC','ICT care coord.'],jj:true},
+  NJ:{name:'New Jersey',tier:'SIMILAR',summary:'MacArthur Models for Change. County behavioral health wraparound programs.',programs:['MacArthur MfC','County BH wraparound'],jj:false},
+  CT:{name:'Connecticut',tier:'SIMILAR',summary:'JJ reform leader. MacArthur Models for Change. Significant incarceration reduction.',programs:['MacArthur MfC','State JJ reform'],jj:false},
+  TX:{name:'Texas',tier:'SIMILAR',summary:'MacArthur MfC active. Dallas County EBP contracts. TJJD community diversion.',programs:['MacArthur MfC','Dallas County EBP'],jj:true},
+  KS:{name:'Kansas',tier:'SIMILAR',summary:'MacArthur MfC. State EBP support for JJ youth. County intensive coordination.',programs:['MacArthur MfC','County intensive coord.'],jj:false},
+  NM:{name:'New Mexico',tier:'SIMILAR',summary:'Medicaid Reentry 1115 Demo (2023).',programs:['Medicaid 1115 Demo'],jj:true},
+  KY:{name:'Kentucky',tier:'SIMILAR',summary:'Medicaid Reentry 1115 Demo (2023).',programs:['Medicaid 1115 Demo'],jj:true},
+  UT:{name:'Utah',tier:'SIMILAR',summary:'Juvenile Court case planning toolkit with Division of Juvenile Services. Medicaid 1115 Demo.',programs:['JC case planning toolkit','Medicaid 1115 Demo'],jj:true},
+  FL:{name:'Florida',tier:'EMERGING',summary:'DJJ Office of Fidelity, Accountability and Support (2006). OJJDP CoC grantee.',programs:['OFAS (DJJ)','OJJDP CoC grantee'],jj:true},
+  OK:{name:'Oklahoma',tier:'EMERGING',summary:'Evolving county-level wraparound (CHCS documented site).',programs:['County wraparound (CHCS site)'],jj:false},
+  MS:{name:'Mississippi',tier:'EMERGING',summary:'State law (2005/06) requires every county to offer community-based JJ alternatives.',programs:['Mandatory county alternatives law'],jj:true},
+  AZ:{name:'Arizona',tier:'EMERGING',summary:'Medicaid MCOs required to have JJ liaisons. Pending Medicaid 1115 Demo. Multidisciplinary child/family teams at facilities.',programs:['Required Medicaid JJ liaisons','Pending 1115 Demo'],jj:true},
+  NE:{name:'Nebraska',tier:'EMERGING',summary:'Judicial Branch EBP provider registry by region.',programs:['Judicial EBP registry'],jj:false},
+  MO:{name:'Missouri',tier:'EMERGING',summary:'County-level intensive coordination for JJ youth.',programs:['County intensive coord.'],jj:false},
+  MI:{name:'Michigan',tier:'EMERGING',summary:'Livingston County blended funding ICC/Wraparound (CHCS documented site).',programs:['Livingston Co. ICC','CHCS documented site'],jj:false},
+};
+
+const STATE_COORDS = {
+  AL:{x:562,y:388,w:58,h:68},AK:{x:58,y:462,w:88,h:76},AZ:{x:138,y:348,w:70,h:78},
+  AR:{x:490,y:368,w:68,h:58},CA:{x:78,y:278,w:72,h:118},CO:{x:228,y:298,w:80,h:58},
+  CT:{x:762,y:210,w:30,h:26},DE:{x:748,y:252,w:24,h:28},FL:{x:568,y:428,w:98,h:78},
+  GA:{x:578,y:378,w:70,h:68},HI:{x:218,y:508,w:80,h:38},ID:{x:158,y:188,w:64,h:88},
+  IL:{x:508,y:268,w:54,h:78},IN:{x:538,y:268,w:50,h:68},IA:{x:464,y:238,w:70,h:54},
+  KS:{x:368,y:318,w:84,h:54},KY:{x:546,y:318,w:90,h:48},LA:{x:478,y:418,w:70,h:62},
+  ME:{x:794,y:138,w:50,h:62},MD:{x:716,y:256,w:64,h:36},MA:{x:766,y:186,w:54,h:26},
+  MI:{x:528,y:198,w:74,h:68},MN:{x:438,y:158,w:74,h:78},MS:{x:508,y:388,w:54,h:68},
+  MO:{x:468,y:308,w:80,h:62},MT:{x:198,y:158,w:108,h:62},NE:{x:358,y:264,w:88,h:52},
+  NV:{x:118,y:252,w:64,h:88},NH:{x:780,y:163,w:26,h:46},NJ:{x:750,y:236,w:26,h:34},
+  NM:{x:218,y:368,w:74,h:78},NY:{x:698,y:183,w:90,h:62},NC:{x:616,y:338,w:110,h:48},
+  ND:{x:358,y:163,w:88,h:52},OH:{x:576,y:256,w:66,h:66},OK:{x:368,y:368,w:100,h:52},
+  OR:{x:88,y:193,w:84,h:78},PA:{x:658,y:226,w:88,h:52},RI:{x:782,y:218,w:16,h:18},
+  SC:{x:618,y:368,w:64,h:52},SD:{x:358,y:213,w:88,h:52},TN:{x:518,y:343,w:104,h:46},
+  TX:{x:318,y:388,w:130,h:108},UT:{x:183,y:283,w:64,h:78},VT:{x:760,y:158,w:26,h:46},
+  VA:{x:636,y:293,w:108,h:52},WA:{x:98,y:146,w:80,h:58},WV:{x:624,y:276,w:54,h:52},
+  WI:{x:478,y:193,w:64,h:72},WY:{x:243,y:228,w:88,h:58},DC:{x:730,y:270,w:14,h:14}
+};
+
+// ─── CHARTS ────────────────────────────────────────────────────────
+let charts = {};
+function destroyChart(id) { if (charts[id]) { charts[id].destroy(); delete charts[id]; } }
+
+const chartDefaults = {
+  plugins: {
+    legend: { labels: { color: '#7a7f8a', font: { family: 'DM Mono', size: 11 }, boxWidth: 20 } },
+    tooltip: { backgroundColor: '#1e2024', titleColor: '#e8e9eb', bodyColor: '#7a7f8a', borderColor: '#2a2d34', borderWidth: 1 }
+  },
+  scales: {
+    x: { ticks: { color: '#7a7f8a', font: { family: 'DM Mono', size: 10 } }, grid: { color: 'rgba(255,255,255,0.04)' } },
+    y: { ticks: { color: '#7a7f8a', font: { family: 'DM Mono', size: 10 } }, grid: { color: 'rgba(255,255,255,0.04)' } }
+  },
+  responsive: true, maintainAspectRatio: false
+};
+
+function getMetric() { return document.getElementById('metricSelect').value; }
+function getYear() { return +document.getElementById('yearSelect').value; }
+function fmt(n) { return n == null ? 'N/A' : n.toLocaleString(); }
+function getStateYear(loc, yr) { return stateData.find(d => d.Location === loc && d.TimeFrame === yr) || null; }
+
+// STAT CARDS
+function renderStats() {
+  const yr = getYear(), m = getMetric();
+  const nat = nationData.find(d => d.TimeFrame === yr);
+  const nat1997 = nationData.find(d => d.TimeFrame === 1997);
+  const nc = getStateYear('North Carolina', yr);
+  const nc1997 = getStateYear('North Carolina', 1997);
+  const allStates = stateData.filter(d => d.TimeFrame === yr);
+  const maxState = allStates.reduce((a,b) => (b[m]||0) > (a[m]||0) ? b : a, allStates[0]);
+  const pct = nat && nat1997 ? Math.round((nat.count - nat1997.count)/nat1997.count*100) : null;
+  const ncPct = nc && nc1997 ? Math.round((nc.count - nc1997.count)/nc1997.count*100) : null;
+  const hfwCount = Object.values(HFW_STATES).filter(s=>s.tier==='HFW').length;
+  const simCount = Object.values(HFW_STATES).filter(s=>s.tier==='SIMILAR').length;
+
+  const cards = [
+    {label:`US Total (${yr})`,value:nat?fmt(nat[m]):'—',delta:pct!=null?`${pct>0?'+':''}${pct}% from 1997`:'',down:pct<0,color:'var(--accent2)'},
+    {label:`North Carolina (${yr})`,value:nc?fmt(nc[m]):'—',delta:ncPct!=null?`${ncPct>0?'+':''}${ncPct}% from 1997`:'',down:ncPct<0,color:'var(--nc)'},
+    {label:`Highest State (${yr})`,value:maxState?fmt(maxState[m]):'—',delta:maxState?maxState.Location:'',color:'var(--accent)'},
+    {label:'States w/ HFW Program',value:hfwCount,delta:'Established statewide',color:'var(--hfw)'},
+    {label:'States w/ Similar Prog.',value:simCount,delta:'Intensive wraparound',color:'var(--similar)'},
+    {label:'Years of Data',value:'13',delta:'1997 – 2021',color:'var(--accent3)'},
+  ];
+  document.getElementById('statsRow').innerHTML = cards.map(c=>`
+    <div class="stat-card" style="--accent-color:${c.color}">
+      <div class="stat-label">${c.label}</div>
+      <div class="stat-value">${c.value}</div>
+      <div class="stat-delta ${c.down?'down':''}">${c.delta}</div>
+    </div>`).join('');
+}
+
+// TREND CHART (overview)
+function renderTrend() {
+  const m = getMetric();
+  destroyChart('trend');
+  charts['trend'] = new Chart(document.getElementById('trendChart'), {
+    type:'line', data:{
+      labels: years,
+      datasets:[
+        {label:'United States',data:years.map(y=>nationData.find(d=>d.TimeFrame===y)?.[m]||null),borderColor:'#4fc4cf',backgroundColor:'rgba(79,196,207,0.08)',borderWidth:2.5,pointRadius:4,fill:true,tension:0.35},
+        {label:'North Carolina',data:years.map(y=>getStateYear('North Carolina',y)?.[m]||null),borderColor:'#6ee7b7',backgroundColor:'rgba(110,231,183,0.05)',borderWidth:2,borderDash:[5,4],pointRadius:3,fill:false,tension:0.35}
+      ]
+    }, options:{...chartDefaults}
+  });
+}
+
+// FULL TREND CHART (trends tab)
+function renderTrendFull() {
+  destroyChart('trendFull');
+  charts['trendFull'] = new Chart(document.getElementById('trendChartFull'), {
+    type:'line', data:{
+      labels: years,
+      datasets:[
+        {label:'US Count',data:years.map(y=>nationData.find(d=>d.TimeFrame===y)?.count||null),borderColor:'#4fc4cf',backgroundColor:'rgba(79,196,207,0.1)',borderWidth:2.5,pointRadius:4,fill:true,tension:0.35,yAxisID:'y'},
+        {label:'US Rate/100k',data:years.map(y=>nationData.find(d=>d.TimeFrame===y)?.rate||null),borderColor:'#f5c842',backgroundColor:'transparent',borderWidth:2,borderDash:[5,4],pointRadius:3,fill:false,tension:0.35,yAxisID:'y2'}
+      ]
+    }, options:{...chartDefaults,
+      scales:{
+        x:chartDefaults.scales.x,
+        y:{...chartDefaults.scales.y,position:'left'},
+        y2:{ticks:{color:'#f5c842',font:{family:'DM Mono',size:10}},grid:{display:false},position:'right'}
+      }
+    }
+  });
+}
+
+// YoY CHART
+function renderYoY() {
+  const yr = getYear();
+  const priorYr = years[Math.max(0, years.indexOf(yr) - 1)];
+  document.getElementById('yoyLabel').textContent = `${yr} vs ${priorYr} — change in count per state`;
+  const states50 = [...new Set(stateData.map(d=>d.Location))].filter(l=>l!=='United States');
+  const changes = states50.map(loc=>{
+    const curr = getStateYear(loc,yr)?.count || 0;
+    const prev = getStateYear(loc,priorYr)?.count || curr;
+    return {loc, change: curr - prev};
+  }).sort((a,b)=>a.change - b.change).slice(0,20);
+  destroyChart('yoy');
+  charts['yoy'] = new Chart(document.getElementById('yoyChart'), {
+    type:'bar', data:{
+      labels: changes.map(d=>d.loc),
+      datasets:[{label:'Change in count',data:changes.map(d=>d.change),backgroundColor:changes.map(d=>d.loc==='North Carolina'?'#6ee7b7':d.change<0?'rgba(79,196,207,0.6)':'rgba(232,100,58,0.6)'),borderRadius:3}]
+    }, options:{...chartDefaults,plugins:{...chartDefaults.plugins,legend:{display:false}}}
+  });
+}
+
+// MULTI-LINE CHART
+function renderMultiLine() {
+  const top10 = stateData.filter(d=>d.TimeFrame===2003).sort((a,b)=>b.count-a.count).slice(0,10).map(d=>d.Location);
+  const colors = ['#4fc4cf','#e8643a','#6ee7b7','#f5c842','#8b8ff5','#f09f6e','#5edcdc','#ff8c69','#a8e6cf','#ffd700'];
+  destroyChart('multiLine');
+  charts['multiLine'] = new Chart(document.getElementById('multiLineChart'), {
+    type:'line', data:{
+      labels: years,
+      datasets: top10.map((loc,i)=>({
+        label:loc,
+        data:years.map(y=>getStateYear(loc,y)?.count||null),
+        borderColor:loc==='North Carolina'?'#6ee7b7':colors[i],
+        borderWidth:loc==='North Carolina'?3:1.5,
+        borderDash:loc==='North Carolina'?[]:[4,3],
+        pointRadius:loc==='North Carolina'?4:2,
+        tension:0.35,fill:false
+      }))
+    }, options:{...chartDefaults}
+  });
+}
+
+// RANKINGS
+function renderRankings() {
+  const yr = getYear(), m = getMetric();
+  document.getElementById('rankLabel').textContent = `Top 15 states · ${yr} · ${m==='count'?'Total Count':'Rate per 100k'}`;
+  const sorted = stateData.filter(d=>d.TimeFrame===yr && d[m]!=null).sort((a,b)=>b[m]-a[m]).slice(0,15);
+  const maxVal = sorted[0][m];
+  document.getElementById('rankList').innerHTML = sorted.map((d,i)=>`
+    <div class="rank-item">
+      <div class="rank-num">${i+1}</div>
+      <div class="rank-name ${d.Location==='North Carolina'?'nc':''}">${d.Location}${d.Location==='North Carolina'?' ★':''}</div>
+      <div class="rank-bar-wrap"><div class="rank-bar-fill" style="width:${Math.round(d[m]/maxVal*100)}%;background:${d.Location==='North Carolina'?'var(--nc)':'var(--accent2)'}"></div></div>
+      <div class="rank-count">${fmt(d[m])}</div>
+    </div>`).join('');
+}
+
+// NC CHART (overview)
+function renderNC() {
+  const nc97 = getStateYear('North Carolina',1997);
+  const nc21 = getStateYear('North Carolina',2021);
+  const pct = nc97&&nc21?Math.round((nc21.count-nc97.count)/nc97.count*100):0;
+  document.getElementById('ncGrid').innerHTML = `
+    <div class="nc-mini"><div class="val">${fmt(nc97?.count)}</div><div class="lbl">1997 Count</div></div>
+    <div class="nc-mini"><div class="val">${fmt(nc21?.count)}</div><div class="lbl">2021 Count</div></div>
+    <div class="nc-mini"><div class="val">${pct}%</div><div class="lbl">Change</div></div>`;
+  destroyChart('nc');
+  charts['nc'] = new Chart(document.getElementById('ncChart'), {
+    type:'bar', data:{
+      labels:years,
+      datasets:[
+        {label:'NC Count',data:years.map(y=>getStateYear('North Carolina',y)?.count||null),backgroundColor:'rgba(110,231,183,0.55)',borderColor:'#6ee7b7',borderWidth:1,borderRadius:3,yAxisID:'y'},
+        {label:'NC Rate/100k',data:years.map(y=>getStateYear('North Carolina',y)?.rate||null),type:'line',borderColor:'#f5c842',backgroundColor:'transparent',borderWidth:2,pointRadius:3,tension:0.35,yAxisID:'y2'}
+      ]
+    }, options:{...chartDefaults,
+      scales:{
+        x:chartDefaults.scales.x,
+        y:{...chartDefaults.scales.y,position:'left'},
+        y2:{ticks:{color:'#f5c842',font:{family:'DM Mono',size:10}},grid:{display:false},position:'right'}
+      }
+    }
+  });
+}
+
+// NC FULL CHARTS (nc tab)
+function renderNCFull() {
+  const nc97=getStateYear('North Carolina',1997),nc21=getStateYear('North Carolina',2021);
+  const pct=nc97&&nc21?Math.round((nc21.count-nc97.count)/nc97.count*100):0;
+  document.getElementById('ncGridFull').innerHTML=`
+    <div class="nc-mini"><div class="val">${fmt(nc97?.count)}</div><div class="lbl">1997 Count</div></div>
+    <div class="nc-mini"><div class="val">${fmt(nc21?.count)}</div><div class="lbl">2021 Count</div></div>
+    <div class="nc-mini"><div class="val">${pct}%</div><div class="lbl">Change</div></div>`;
+  destroyChart('ncFull');
+  const hfwAnnotation = {type:'line',xMin:'2017',xMax:'2017',borderColor:'rgba(110,231,183,0.6)',borderWidth:2,borderDash:[4,3]};
+  charts['ncFull'] = new Chart(document.getElementById('ncChartFull'), {
+    type:'bar', data:{
+      labels:years,
+      datasets:[
+        {label:'NC Count',data:years.map(y=>getStateYear('North Carolina',y)?.count||null),backgroundColor:years.map(y=>y>=2017?'rgba(110,231,183,0.75)':'rgba(110,231,183,0.35)'),borderColor:'#6ee7b7',borderWidth:1,borderRadius:3}
+      ]
+    }, options:{...chartDefaults}
+  });
+  destroyChart('ncVsNat');
+  charts['ncVsNat'] = new Chart(document.getElementById('ncVsNatChart'), {
+    type:'line', data:{
+      labels:years,
+      datasets:[
+        {label:'US Rate/100k',data:years.map(y=>nationData.find(d=>d.TimeFrame===y)?.rate||null),borderColor:'#4fc4cf',backgroundColor:'rgba(79,196,207,0.08)',borderWidth:2,pointRadius:3,fill:true,tension:0.35},
+        {label:'NC Rate/100k',data:years.map(y=>getStateYear('North Carolina',y)?.rate||null),borderColor:'#6ee7b7',backgroundColor:'rgba(110,231,183,0.05)',borderWidth:2.5,borderDash:[5,4],pointRadius:4,fill:false,tension:0.35}
+      ]
+    }, options:{...chartDefaults}
+  });
+}
+
+// COUNTIES
+function renderCounties() {
+  const maxFam = Math.max(...ncCounties.map(c=>c.families));
+  document.getElementById('countyBody').innerHTML = ncCounties.map(c=>`
+    <tr>
+      <td><strong>${c.county}</strong></td>
+      <td><span class="hfw-badge">${c.program}</span></td>
+      <td style="font-family:'DM Mono',monospace;font-size:0.78rem;color:var(--muted)">${c.since}</td>
+      <td><div class="county-bar"><div class="county-bar-fill" style="width:${Math.round(c.families/maxFam*100)}px"></div><span style="font-family:'DM Mono',monospace;font-size:0.78rem">${c.families}</span></div></td>
+      <td style="color:var(--muted);font-size:0.75rem">${c.note}</td>
+    </tr>`).join('');
+}
+
+// ── HFW MAP ──────────────────────────────────────────────────────────
+let selectedMapState = null;
+
+function getHFWColor(abbr) {
+  const s = HFW_STATES[abbr];
+  return s ? HFW_TIERS[s.tier]?.color : '#2a2d34';
+}
+
+function renderMapCounters() {
+  const c = {HFW:0,SIMILAR:0,EMERGING:0,NONE:0};
+  for(const s of Object.values(HFW_STATES)) c[s.tier]=(c[s.tier]||0)+1;
+  const none = 50 - Object.keys(HFW_STATES).filter(k=>k!=='DC').length;
+  document.getElementById('mapCounters').innerHTML = `
+    <div class="map-counter"><div class="mc-val" style="color:#1D9E75">${c.HFW||0}</div><div class="mc-lbl">HFW established</div></div>
+    <div class="map-counter"><div class="mc-val" style="color:#378ADD">${c.SIMILAR||0}</div><div class="mc-lbl">Similar programs</div></div>
+    <div class="map-counter"><div class="mc-val" style="color:#EF9F27">${c.EMERGING||0}</div><div class="mc-lbl">Emerging / pilot</div></div>
+    <div class="map-counter"><div class="mc-val" style="color:var(--muted)">${none+(c.NONE||0)}</div><div class="mc-lbl">Limited / none</div></div>
+    <div class="map-counter"><div class="mc-val" style="color:var(--nc)">${Object.values(HFW_STATES).filter(s=>s.jj).length}</div><div class="mc-lbl">JJ-specific noted</div></div>`;
+}
+
+function renderUSMap() {
+  const svg = document.getElementById('usmap');
+  let html = '';
+  for (const [abbr, coords] of Object.entries(STATE_COORDS)) {
+    if (!coords || coords.y === undefined) continue;
+    const col = getHFWColor(abbr);
+    const rx = abbr==='DC'?7:5;
+    const fs = coords.w < 34 ? 8 : 10;
+    html += `<g onclick="selectMapState('${abbr}')" style="cursor:pointer">
+      <rect class="state-rect" id="sr-${abbr}" x="${coords.x}" y="${coords.y}" width="${coords.w}" height="${coords.h}" rx="${rx}" fill="${col}" stroke="var(--bg)" stroke-width="0.8"/>
+      <text x="${coords.x+coords.w/2}" y="${coords.y+coords.h/2}" text-anchor="middle" dominant-baseline="central" style="fill:#fff;font-size:${fs}px;font-weight:500;opacity:0.9;pointer-events:none">${abbr}</text>
+    </g>`;
+  }
+  svg.innerHTML = html;
+}
+
+function selectMapState(abbr) {
+  if (selectedMapState) {
+    const prev = document.getElementById('sr-' + selectedMapState);
+    if (prev) prev.classList.remove('selected-state');
+  }
+  selectedMapState = abbr;
+  const el = document.getElementById('sr-' + abbr);
+  if (el) el.classList.add('selected-state');
+
+  const panel = document.getElementById('mapInfo');
+  const s = HFW_STATES[abbr];
+  const col = getHFWColor(abbr);
+  const tier = s?.tier || 'NONE';
+  const tierLabel = HFW_TIERS[tier]?.label || 'No statewide program';
+
+  if (!s) {
+    panel.innerHTML = `<h3>${abbr}</h3><p style="color:var(--muted)">No documented statewide HFW or similar juvenile justice wraparound program found in available research.</p>`;
+    return;
+  }
+  const tagClass = {HFW:'tag-hfw',SIMILAR:'tag-similar',EMERGING:'tag-emerging',NONE:'tag-limited'}[tier];
+  panel.innerHTML = `
+    <h3 style="color:${col}">${s.name} <span style="font-size:0.75rem;font-weight:400;color:var(--muted)">· ${tierLabel}</span>${s.flagship?' <span style="color:var(--nc);font-size:0.8rem">★ Flagship</span>':''}</h3>
+    <p style="color:var(--muted);margin-bottom:8px">${s.summary}</p>
+    <div class="tags">
+      ${s.programs?.map(p=>`<span class="tag ${tagClass}">${p}</span>`).join('')||''}
+      ${s.jj?'<span class="tag tag-hfw">JJ-specific</span>':''}
+    </div>`;
+}
+
+function renderHFWTable() {
+  const rows = Object.entries(HFW_STATES).sort((a,b)=>{
+    const order = {HFW:0,SIMILAR:1,EMERGING:2,NONE:3};
+    return (order[a[1].tier]||3) - (order[b[1].tier]||3) || a[1].name.localeCompare(b[1].name);
+  });
+  const tagClass = {HFW:'tag-hfw',SIMILAR:'tag-similar',EMERGING:'tag-emerging',NONE:'tag-limited'};
+  document.getElementById('hfwTableBody').innerHTML = rows.map(([abbr,s])=>`
+    <tr style="cursor:pointer" onclick="showTab('hfw-map',null);setTimeout(()=>selectMapState('${abbr}'),200)">
+      <td><strong>${s.name}</strong></td>
+      <td><span class="tag ${tagClass[s.tier]}">${HFW_TIERS[s.tier]?.label||s.tier}</span></td>
+      <td style="font-size:0.75rem;color:var(--muted)">${s.programs?.join(' · ')||'—'}</td>
+      <td style="text-align:center">${s.jj?'<span style="color:var(--nc)">✓</span>':'<span style="color:var(--muted)">—</span>'}</td>
+    </tr>`).join('');
+}
+
+// ── TABS ──────────────────────────────────────────────────────────────
+function showTab(id, btn) {
+  document.querySelectorAll('.tab-section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  if (btn) btn.classList.add('active');
+  else {
+    const btns = document.querySelectorAll('.tab-btn');
+    const map = {overview:0,trends:1,'hfw-map':2,nc:3,counties:4};
+    if (map[id]!==undefined) btns[map[id]]?.classList.add('active');
+  }
+
+  // Lazy render charts for each tab
+  if (id==='trends') {
+    setTimeout(()=>{ renderTrendFull(); renderYoY(); renderMultiLine(); }, 50);
+  }
+  if (id==='nc') {
+    setTimeout(()=>{ renderNCFull(); }, 50);
+  }
+  if (id==='hfw-map') {
+    setTimeout(()=>{ renderUSMap(); renderMapCounters(); renderHFWTable(); setTimeout(()=>selectMapState('NC'),200); }, 50);
+  }
+}
+
+// ── REDRAW ───────────────────────────────────────────────────────────
+function redraw() {
+  renderStats();
+  renderTrend();
+  renderRankings();
+  renderNC();
+  if (document.getElementById('tab-trends').classList.contains('active')) {
+    renderTrendFull(); renderYoY(); renderMultiLine();
+  }
+}
+
+// INIT
+renderStats();
+renderTrend();
+renderRankings();
+renderNC();
+renderCounties();
+</script>
+</body>
+</html>
